@@ -46,10 +46,20 @@ fn render_player(px: f32, py: f32, screen: &mut [[char; SCREEN_W]; SCREEN_H]){
     screen[px as usize][py as usize] = '@';
 }
 
+fn render_enemy(px: f32, py: f32, screen: &mut [[char; SCREEN_W]; SCREEN_H]){
+    screen[px as usize][py as usize] = 'E';
+}
+
 fn render_fullscreen_player(px: f32, py: f32, screen: &mut [[char; SCREEN_W]; SCREEN_H]){
     let scale_x = (SCREEN_W / MAP_W) as f32;
     let scale_y = (SCREEN_H / MAP_H) as f32;
     screen[(py * scale_y) as usize][(px * scale_x) as usize] = '@';
+}
+
+fn render_fullscreen_enemy(px: f32, py: f32, screen: &mut [[char; SCREEN_W]; SCREEN_H]){
+    let scale_x = (SCREEN_W / MAP_W) as f32;
+    let scale_y = (SCREEN_H / MAP_H) as f32;
+    screen[(py * scale_y) as usize][(px * scale_x) as usize] = 'E';
 }
 
 fn render2d_map(map: &[[u8;MAP_W];MAP_H], screen: &mut [[char; SCREEN_W]; SCREEN_H]) {
@@ -171,10 +181,47 @@ fn draw_ray(pa: f32, px: f32, py: f32, map: &[[u8;MAP_W];MAP_H], screen: &mut [[
 }
 
 
+fn move_enemy_towards_player(mut ex: f32, mut ey: f32, px: f32, py: f32) -> (f32, f32) {
+    let dx = px - ex;
+    let dy = py - ey;
+    let distance = (dx * dx + dy * dy).sqrt();
+    let steps = 1; // Number of steps we want to try moving
+
+    if distance == 0.0 {
+        return (ex, ey); // Enemy is already at the player's position
+    }
+
+    let step_size_x = dx / distance * 0.03;
+    let step_size_y = dy / distance * 0.03;
+
+    for _ in 0..steps {
+        let next_x = ex + step_size_x;
+        let next_y = ey + step_size_y;
+
+        // Check if the next step is within bounds and not an obstacle
+        if is_within_bounds(next_x, next_y) && is_free(next_x as usize, next_y as usize) {
+            ex = next_x;
+            ey = next_y;
+        } else {
+            break; // Stop if there's an obstacle
+        }
+    }
+
+    (ex, ey)
+}
+
+fn is_within_bounds(x: f32, y: f32) -> bool {
+    x >= 0.0 && x < MAP_W as f32 && y >= 0.0 && y < MAP_H as f32
+}
+
+fn is_free(x: usize, y: usize) -> bool {
+    MAP[y][x] == 0
+}
 
 fn main()-> Result<(), io::Error>{
 
-    let (mut px, mut py, mut pa, mut pdx, mut pdy) = (2f32, 2f32, 0f32, 0f32, 0f32);
+    let (mut px, mut py, mut pa, mut pdx, mut pdy) = (3f32, 3f32, 0f32, 0f32, 0f32);
+    let (mut e_px, mut e_py) = (3f32, 3f32);
     let mut screen = get_screen();
 
     // render2d_map(&MAP, &mut screen);
@@ -186,39 +233,63 @@ fn main()-> Result<(), io::Error>{
     enable_raw_mode()?;
 
     loop {
+
         if poll(Duration::from_millis(10))? {
             if let Event::Key(KeyEvent { code, .. }) = read()? {
                 match code {
                     KeyCode::Char('q') => break,
-                    KeyCode::Char('w') => (px, py) = (px + pdx, py + pdy),
-                    KeyCode::Char('s') =>(px, py) = (px - pdx, py - pdy),
+                    KeyCode::Char('w') => {
+                        let next_x = px + pdx;
+                        let next_y = py + pdy;
+                        if is_within_bounds(next_x, next_y) && is_free(next_x as usize, next_y as usize) {
+                            px = next_x;
+                            py = next_y;
+                        }
+                    },
+                    KeyCode::Char('s') => {
+                        let next_x = px - pdx;
+                        let next_y = py - pdy;
+                        if is_within_bounds(next_x, next_y) && is_free(next_x as usize, next_y as usize) {
+                            px = next_x;
+                            py = next_y;
+                        }
+                    },
                     KeyCode::Char('a') => {
                         pa += 0.1;
-                        pa = if pa < 0.0 {2.0*PI} else if pa > 2.0*PI {0.0} else {pa};
-                        pdx = f32::cos(pa)*0.1;
-                        pdy = f32::sin(pa)*0.1;
+                        if pa > 2.0 * PI {
+                            pa -= 2.0 * PI;
+                        }
+                        pdx = f32::cos(pa) * 0.1;
+                        pdy = f32::sin(pa) * 0.1;
                     },
                     KeyCode::Char('d') => {
                         pa -= 0.1;
-                        pa = if pa < 0.0 {2.0*PI} else if pa > 2.0*PI {0.0} else {pa};
-                        pdx = f32::cos(pa)*0.1;
-                        pdy = f32::sin(pa)*0.1;
+                        if pa < 0.0 {
+                            pa += 2.0 * PI;
+                        }
+                        pdx = f32::cos(pa) * 0.1;
+                        pdy = f32::sin(pa) * 0.1;
                     },
-
-                    // Handle other key events as needed
                     _ => {}
                 }
             }
-
         }
+
+        // Move enemy towards the player
+        let new_position = move_enemy_towards_player(e_px, e_py, px, py);
+        e_px = new_position.0; // Update enemy's x-position
+        e_py = new_position.1; // Update enemy's y-position
+
         // Your other loop logic here
         reset_screen(&mut screen);
         // render2d_map(&MAP, &mut screen);
         // render_player(px, py, &mut screen);
         render_fullscreen2d_map(&MAP, &mut screen);
         draw_fullscreen_player_ray(px, py, pdx, pdy, &mut screen);
-        draw_ray(pa, px, py, &MAP, &mut screen);
+        // draw_ray(pa, px, py, &MAP, &mut screen);
         render_fullscreen_player(px, py, &mut screen);
+
+        render_fullscreen_enemy(e_px, e_py, &mut screen);
 
         print_screen(&screen);
 
