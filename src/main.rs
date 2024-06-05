@@ -386,34 +386,36 @@ fn draw_ray(pa: f32, px: f32, py: f32, map: &[[u8;MAP_W];MAP_H], screen: &mut [[
 // }
 
 fn render_enemy(px: f32, py: f32, pa: f32, ex: f32, ey: f32, screen: &mut [[char; SCREEN_W]; SCREEN_H]) {
-    let distance = distance(px, py, ex, ey, 0.0);
-    let angular_difference = angle(px, py, pa, ex, ey);
+    let distance = distance(px, py, ex, ey, 0.0); // Calculate the distance
+    let angular_difference = angle(px, py, pa, ex, ey); // Calculate the angle difference
 
     // Check if the enemy is within the 30-degree FOV to either side
-    if angular_difference.abs() <= std::f32::consts::PI / 6.0 {
-        let max_size = 140.0;
-        let size_factor = distance.powi(2) / 5.0 + 1.0;
-        let size = ((max_size / size_factor).max(1.0)).min(max_size) as usize;
+    if angular_difference.abs() <= std::f32::consts::PI / 6.0 { // Half FOV in radians
+        let max_size = 140.0; // Max size when enemy is very close
+        let size_factor = distance.powi(2) / 5.0 + 1.0; // Distance effect on size
+        let size = ((max_size / size_factor).max(1.0)).min(max_size) as usize; // Compute size
 
-        // Calculate horizontal screen position based on the angle
-        let half_fov = std::f32::consts::PI / 6.0;
-        let fov_scale = SCREEN_W as f32 / (2.0 * half_fov);
-        let screen_position_x = ((angular_difference + half_fov) * fov_scale).round() as isize - (size / 2) as isize;
+        // Convert angle difference to a screen position
+        let half_fov = std::f32::consts::PI / 6.0; // 30 degrees
+        let fov_scale = SCREEN_W as f32 / (2.0 * half_fov); // Map the FOV to screen width
+        let center_screen_x = SCREEN_W as f32 / 2.0; // Middle of the screen
+        let screen_position_x = center_screen_x + (angular_difference * fov_scale).round() - size as f32 / 2.0; // Center sprite
 
-        let screen_position_y = (SCREEN_H as isize / 2) - (size / 2) as isize;
+        let screen_position_y = (SCREEN_H as isize / 2) - (size / 2) as isize; // Vertically center
 
-        // Ensure the square is centered on the enemy's position
+        // Draw the sprite based on calculated position
         for i in 0..size {
             for j in 0..size {
-                let draw_x = screen_position_x + j as isize;
+                let draw_x = (screen_position_x as isize + j as isize).max(0).min(SCREEN_W as isize - 1); // Ensure within bounds
                 let draw_y = screen_position_y + i as isize;
                 if draw_x >= 0 && draw_x < SCREEN_W as isize && draw_y >= 0 && draw_y < SCREEN_H as isize {
-                    screen[draw_y as usize][draw_x as usize] = 'E';
+                    screen[draw_y as usize][draw_x as usize] = 'E'; // Draw the enemy
                 }
             }
         }
     }
 }
+
 
 
 
