@@ -29,10 +29,10 @@ const MAP_W: usize = 8;
 const MAP: [[u8; MAP_W]; MAP_H] = [
     [1, 1, 1, 1, 1, 1, 1, 1],
     [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 0, 0, 1, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 0, 0, 1, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 1],
     [1, 1, 1, 1, 1, 1, 1, 1]
 ];
@@ -233,6 +233,7 @@ fn move_enemy_towards_player(
     (ex, ey)
 }
 
+
 fn draw_ray(pa: f32, px: f32, py: f32, map: &[[u8;MAP_W];MAP_H], screen: &mut [[char; SCREEN_W]; SCREEN_H]){
     let(mut mx, mut my, mut dof) = (0usize, 0usize, 0usize);
     let(mut rx, mut ry, mut ra, mut xo, mut yo) = (0f32, 0f32, 0f32, 0f32, 0f32);
@@ -410,6 +411,38 @@ fn to_degrees(radians: f32) -> f32 {
     radians * 180.0 / std::f32::consts::PI
 }
 
+fn can_see_enemy(px: f32, py: f32, ex: f32, ey: f32, map: &[[u8; MAP_W]; MAP_H]) -> bool {
+    let mut x0 = px.round() as isize;
+    let mut y0 = py.round() as isize;
+    let x1 = ex.round() as isize;
+    let y1 = ey.round() as isize;
+
+    let dx = (x1 - x0).abs();
+    let dy = -(y1 - y0).abs();
+    let sx = if x0 < x1 { 1 } else { -1 };
+    let sy = if y0 < y1 { 1 } else { -1 };
+    let mut err = dx + dy;
+
+    while x0 != x1 || y0 != y1 {
+        if x0 >= 0 && x0 < MAP_W as isize && y0 >= 0 && y0 < MAP_H as isize {
+            if map[y0 as usize][x0 as usize] > 0 {
+                return false; // The ray has hit a wall
+            }
+        }
+
+        let e2 = 2 * err;
+        if e2 >= dy {
+            err += dy;
+            x0 += sx;
+        }
+        if e2 <= dx {
+            err += dx;
+            y0 += sy;
+        }
+    }
+
+    true // The ray has not hit any wall
+}
 
 
 fn main()-> Result<(), io::Error>{
@@ -491,8 +524,14 @@ fn main()-> Result<(), io::Error>{
         reset_screen(&mut screen);
 
         //draw_enemy_ray(pa, px, py, &mut screen, e_px, e_py);
-        render_enemy(px, py, pa, e_px, e_py, &mut screen);
+        //render_enemy(px, py, pa, e_px, e_py, &mut screen);
+
         draw_ray(pa, px, py, &MAP, &mut screen);
+
+        if can_see_enemy(px, py, e_px, e_py, &MAP) {
+            render_enemy(px, py, pa, e_px, e_py, &mut screen);
+        }
+
         //draw_ray(pa, px, py, &MAP, &mut screen);
 
 
