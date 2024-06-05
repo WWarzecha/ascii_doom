@@ -1,3 +1,5 @@
+// AUTORZY: Wiktor Warzecha, Piotr Błaszczyk
+
 use std::collections::{HashMap, VecDeque};
 use std::ffi::c_uint;
 use std::io;
@@ -354,36 +356,6 @@ fn draw_ray(pa: f32, px: f32, py: f32, map: &[[u8;MAP_W];MAP_H], screen: &mut [[
     }
 
 }
-
-
-// fn render_enemy(px: f32, py: f32, pa: f32, ex: f32, ey: f32, screen: &mut [[char; SCREEN_W]; SCREEN_H]) {
-//     let distance = distance(px, py, ex, ey, 0.0);
-//     let angular_difference = angle(px, py, pa, ex, ey);
-//
-//     // Check if the enemy is within the 30-degree FOV to either side
-//     if angular_difference.abs() <= std::f32::consts::PI / 6.0 {
-//         let max_size = 140.0;
-//         let size_factor = distance.powi(2) / 5.0 + 1.0;
-//         let size = ((max_size / size_factor).max(1.0)).min(max_size) as usize;
-//
-//         // Calculate horizontal screen position based on the angle
-//         let half_fov = std::f32::consts::PI / 6.0;
-//         let fov_scale = SCREEN_W as f32 / (2.0 * half_fov);
-//         let screen_position_x = ((angular_difference + half_fov) * fov_scale).round() as isize - size as isize / 2;
-//
-//         let screen_position_y = (SCREEN_H as isize / 2) - (size as isize / 2);
-//
-//         for i in 0..size {
-//             for j in 0..size {
-//                 let draw_x = screen_position_x + j as isize;
-//                 let draw_y = screen_position_y + i as isize;
-//                 if draw_x >= 0 && draw_x < SCREEN_W as isize && draw_y >= 0 && draw_y < SCREEN_H as isize {
-//                     screen[draw_y as usize][draw_x as usize] = 'E';
-//                 }
-//             }
-//         }
-//     }
-// }
 
 fn render_enemy(px: f32, py: f32, pa: f32, ex: f32, ey: f32, screen: &mut [[char; SCREEN_W]; SCREEN_H]) {
     let distance = distance(px, py, ex, ey, 0.0); // Calculate the distance
