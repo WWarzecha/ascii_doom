@@ -46,19 +46,23 @@ fn reset_screen(screen: &mut [[char;SCREEN_W];SCREEN_H]){
         }
     }
 }
+
 fn print_screen(screen: &[[char; SCREEN_W]; SCREEN_H]){
     clearscreen::clear().unwrap();
+    let mut output = String::new();
     for line in screen.iter() { // Correctly iterate over each line
         for pixel in line.iter() { // Correctly iterate over each pixel in the line
             if *pixel == 'E' {
-                print!("{}", pixel.to_string().red()); // Use `to_string().red()` to print in red
+                output.push_str(&pixel.to_string().red().to_string()); // Use `to_string().red()` to print in red
             } else {
-                print!("{}", pixel);
+                output.push(*pixel);
             }
         }
-        println!(); // Move to the next line after each line is printed
+        output.push('\n'); // Move to the next line after each line is printed
     }
+    print!("{}", output); // Print the entire concatenated string at once
 }
+
 
 fn draw_line(matrix: &mut [[char; SCREEN_W]; SCREEN_H], x0: usize, y0: usize, x1: usize, y1: usize, c: char) {
     let dx = (x1 as isize - x0 as isize).abs();
@@ -355,36 +359,6 @@ fn draw_ray(pa: f32, px: f32, py: f32, map: &[[u8;MAP_W];MAP_H], screen: &mut [[
 
 }
 
-
-// fn render_enemy(px: f32, py: f32, pa: f32, ex: f32, ey: f32, screen: &mut [[char; SCREEN_W]; SCREEN_H]) {
-//     let distance = distance(px, py, ex, ey, 0.0);
-//     let angular_difference = angle(px, py, pa, ex, ey);
-//
-//     // Check if the enemy is within the 30-degree FOV to either side
-//     if angular_difference.abs() <= std::f32::consts::PI / 6.0 {
-//         let max_size = 140.0;
-//         let size_factor = distance.powi(2) / 5.0 + 1.0;
-//         let size = ((max_size / size_factor).max(1.0)).min(max_size) as usize;
-//
-//         // Calculate horizontal screen position based on the angle
-//         let half_fov = std::f32::consts::PI / 6.0;
-//         let fov_scale = SCREEN_W as f32 / (2.0 * half_fov);
-//         let screen_position_x = ((angular_difference + half_fov) * fov_scale).round() as isize - size as isize / 2;
-//
-//         let screen_position_y = (SCREEN_H as isize / 2) - (size as isize / 2);
-//
-//         for i in 0..size {
-//             for j in 0..size {
-//                 let draw_x = screen_position_x + j as isize;
-//                 let draw_y = screen_position_y + i as isize;
-//                 if draw_x >= 0 && draw_x < SCREEN_W as isize && draw_y >= 0 && draw_y < SCREEN_H as isize {
-//                     screen[draw_y as usize][draw_x as usize] = 'E';
-//                 }
-//             }
-//         }
-//     }
-// }
-
 fn render_enemy(px: f32, py: f32, pa: f32, ex: f32, ey: f32, screen: &mut [[char; SCREEN_W]; SCREEN_H]) {
     let distance = distance(px, py, ex, ey, 0.0); // Calculate the distance
     let angular_difference = angle(px, py, pa, ex, ey); // Calculate the angle difference
@@ -540,12 +514,6 @@ fn main()-> Result<(), io::Error>{
 
         let path = bfs_path(&graph, (e_px as usize, e_py as usize), (px as usize, py as usize));
 
-        // Debug: Print the calculated path
-        // println!("Calculated path:");
-        // for node in &path {
-        //     println!("{:?}", node);
-        // }
-
         // Move enemy towards the player using the path
         let new_position = move_enemy_towards_player(e_px, e_py, px, py, &path);
         e_px = new_position.0; // Update enemy's x-position
@@ -575,6 +543,4 @@ fn main()-> Result<(), io::Error>{
 
     disable_raw_mode()?;
     Ok(())
-    // print_map(px, py, &map);
-    // println!("Hello, world!");
 }
