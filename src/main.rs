@@ -1,3 +1,5 @@
+// AUTORZY: Wiktor Warzecha, Piotr Błaszczyk
+
 use std::collections::{HashMap, VecDeque};
 use std::ffi::c_uint;
 use std::io;
