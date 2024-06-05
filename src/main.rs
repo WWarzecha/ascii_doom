@@ -29,10 +29,10 @@ const MAP_W: usize = 8;
 const MAP: [[u8; MAP_W]; MAP_H] = [
     [1, 1, 1, 1, 1, 1, 1, 1],
     [1, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 1, 0, 0, 1, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 1, 0, 0, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 1],
     [1, 1, 1, 1, 1, 1, 1, 1]
 ];
@@ -46,62 +46,17 @@ fn reset_screen(screen: &mut [[char;SCREEN_W];SCREEN_H]){
         }
     }
 }
-fn print_screen(screen: &[[char;SCREEN_W];SCREEN_H]){
+fn print_screen(screen: &[[char; SCREEN_W]; SCREEN_H]){
     clearscreen::clear().unwrap();
-    for line in (0..SCREEN_H){
-        // for pixel in 0..SCREEN_W{
-        //     print!("{} ", screen[line][pixel].green());
-        // }
-        let s2: String = screen[line].iter().collect();
-        print!("{s2}\n")
-    }
-}
-
-fn render_player(px: f32, py: f32, screen: &mut [[char; SCREEN_W]; SCREEN_H]){
-    screen[px as usize][py as usize] = '@';
-}
-
-fn render_enemy(px: f32, py: f32, screen: &mut [[char; SCREEN_W]; SCREEN_H]) {
-    screen[px as usize][py as usize] = 'E';
-}
-
-
-fn render_fullscreen_player(px: f32, py: f32, screen: &mut [[char; SCREEN_W]; SCREEN_H]){
-    let scale_x = (SCREEN_W / MAP_W) as f32;
-    let scale_y = (SCREEN_H / MAP_H) as f32;
-    screen[(py * scale_y) as usize][(px * scale_x) as usize] = '@';
-}
-
-fn render_fullscreen_enemy(px: f32, py: f32, screen: &mut [[char; SCREEN_W]; SCREEN_H]) {
-    let scale_x = (SCREEN_W / MAP_W) as f32;
-    let scale_y = (SCREEN_H / MAP_H) as f32;
-    screen[(py * scale_y) as usize][(px * scale_x) as usize] = 'E';
-}
-
-fn render2d_map(map: &[[u8;MAP_W];MAP_H], screen: &mut [[char; SCREEN_W]; SCREEN_H]) {
-
-    for i in 0..MAP_H {
-        for j in 0..MAP_W {
-            if map[i][j] > 0 {
-                screen[i][j] = '#';
+    for line in screen.iter() { // Correctly iterate over each line
+        for pixel in line.iter() { // Correctly iterate over each pixel in the line
+            if *pixel == 'E' {
+                print!("{}", pixel.to_string().red()); // Use `to_string().red()` to print in red
+            } else {
+                print!("{}", pixel);
             }
         }
-    }
-}
-
-fn render_fullscreen2d_map(map: &[[u8;MAP_W];MAP_H], screen: &mut [[char; SCREEN_W]; SCREEN_H]) {
-    let scale_x = SCREEN_W / MAP_W;
-    let scale_y = SCREEN_H / MAP_H;
-    for i in 0..MAP_H {
-        for j in (0..MAP_W).rev() {
-            if map[i][j] > 0 {
-                for k in 0..scale_y {
-                    for l in 0..scale_x {
-                        screen[scale_y*i+k][scale_x*j+l] = '#';
-                    }
-                }
-            }
-        }
+        println!(); // Move to the next line after each line is printed
     }
 }
 
@@ -135,14 +90,6 @@ fn distance(x1: f32,y1: f32, x2: f32, y2: f32, ra: f32) -> f32{
     f32::sqrt(f32::powi(x1-x2,2) + f32::powi(y1-y2,2))
     // f32::cos(ra)*(x1-x2)-f32::sin(ra)*(y2-y1)
 }
-
-
-fn draw_fullscreen_player_ray(px: f32, py: f32, pdx: f32, pdy:f32, screen: &mut [[char; SCREEN_W]; SCREEN_H]){
-    let scale_x = (SCREEN_W / MAP_W) as f32;
-    let scale_y = (SCREEN_H / MAP_H) as f32;
-    draw_line(screen,(px*scale_x) as usize, (py*scale_y) as usize, ((px+5.0*pdx)*scale_x) as usize, ((py+5.0*pdy)*scale_y) as usize, '*');
-}
-
 
 
 fn update_angle(change: f32, pa: &mut f32, pdx: &mut f32, pdy: &mut f32){
@@ -218,124 +165,6 @@ fn bfs_path(
     path
 }
 
-fn draw_ray(pa: f32, px: f32, py: f32, map: &[[u8;MAP_W];MAP_H], screen: &mut [[char; SCREEN_W]; SCREEN_H]){
-    let(mut mx, mut my, mut dof) = (0usize, 0usize, 0usize);
-    let(mut rx, mut ry, mut ra, mut xo, mut yo) = (0f32, 0f32, 0f32, 0f32, 0f32);
-    let mut dis = f32::INFINITY;
-    let mut dis_h = f32::INFINITY;
-    let mut dis_v = f32::INFINITY;
-    let mut hx = f32::INFINITY;; let mut hy = f32::INFINITY;;
-    let mut vx = f32::INFINITY;; let mut vy = f32::INFINITY;;
-
-    let change: f32 = 60.0*DEG/SCREEN_W as f32;     //FOV HAPPENING HER
-    ra = pa-30.0*DEG;
-    if ra<0.0{ra+=2.0*PI};
-    if ra>2.0*PI{ra-=2.0*PI};
-
-    for r in 0..SCREEN_W{
-        // HORIZONTAL LINES
-        dof = 0;
-        let tan: f32 = f32::tan(ra);
-        let ctg: f32 = 1.0 / tan;
-        if(ra>PI){
-            ry = (py as usize) as f32-0.0001;
-            rx = (ry-py) * ctg + px;
-            yo = -1.0;
-            xo = yo * ctg;
-        }
-        else if(ra > 0.0 && ra < PI){
-            ry = (py as usize+1) as f32;
-            rx = (ry-py) * ctg + px;
-            yo = 1.0;
-            xo = yo* ctg;
-        }
-        else{
-            rx = px; ry = py; dof = MAP_W; dis_h = f32::INFINITY;;
-        }
-
-        while dof < MAP_W {
-            mx = rx as usize; my = ry as usize;
-            // if rx < 0.0 || rx > MAP_W as f32 || ry < 0.0 || ry > MAP_H as f32{
-            //     rx = px + 100000.0*f32::cos(pa); ry = py + 100000.0*f32::sin(pa); dof = MAP_W;
-            // }
-            if mx < MAP_W && my < MAP_H && map[my][mx]>0u8{
-                hx = rx;
-                hy = ry;
-                dis_h = distance(px, py, rx, ry, ra);
-                dof = 8;
-            }
-            else{
-                rx += xo; ry += yo; dof +=1;
-            }
-        }
-        let scale_x = SCREEN_W as f32/ MAP_W as f32;
-        let scale_y = SCREEN_H as f32 / MAP_H as f32;
-
-        //horizontal rays on 2d map
-        // draw_line(screen, (px*scale_x) as usize, (py*scale_y) as usize, (rx*scale_x) as usize, (ry*scale_y) as usize, '*');
-
-        // VERTICAL LINES
-        dof = 0;
-        if(ra>PI_1_OVER_2 && ra<PI_3_OVER_2){
-        // if f32::cos(ra) < -0.001{
-            rx = (px as usize) as f32-0.001;
-            ry = (rx-px) * tan + py;
-            xo = -1.0;
-            yo = xo * tan;
-        }
-        else if(ra < PI_1_OVER_2 || ra  > PI_3_OVER_2){
-        // else if f32::cos(ra) > 0.001{
-            rx = (px as usize) as f32 + 1.0;
-            ry = (rx-px) * tan + py;
-            xo = 1.0;
-            yo = xo * tan;
-        }
-        else{
-            rx = px; ry = py; dof = MAP_W; dis_v = f32::INFINITY;
-        }
-        while dof < MAP_W {
-
-            mx = rx as usize; my = ry as usize;
-            // print!("\nrx {rx}, ry {ry}, xo{xo}, yo{yo}, mx{mx}, my{my}");
-            // if rx < 0.0 || rx > MAP_W as f32 || ry < 0.0 || ry > MAP_H as f32{
-            //     rx = px + 100000.0*f32::cos(pa); ry = py + 100000.0*f32::sin(pa); dof = MAP_W;
-            // }
-            if(mx < MAP_W && my < MAP_H && map[my][mx]>0u8){
-                vx = rx;
-                vy = ry;
-                dis_v = distance(px, py, rx, ry, ra);
-                dof = MAP_W;
-            }
-            else {
-                rx += xo;
-                ry += yo;
-                dof += 1;
-            }
-        }
-        let c:char;
-        if dis_v < dis_h {rx = vx; ry = vy; dis = dis_v; c='|'} else{rx = hx; ry = hy; dis = dis_h; c = '-'};
-
-
-        //any ray
-        // draw_line(screen, (px*scale_x) as usize, (py*scale_y) as usize, (rx*scale_x) as usize, (ry*scale_y) as usize, '*');
-
-
-        //3D SCREEN
-        let mut ca:f32 = pa-ra; if ca < 0.0 {ca += 2.0*PI} else if ca > 2.0*PI {ca -= 2.0*PI};
-        dis *= f32::cos(ca);
-        let mut line_h = (SCREEN_H as f32/ dis) as usize; if line_h > SCREEN_H {line_h = SCREEN_H};
-        let tmp = SCREEN_H/2 - (line_h/2);
-        draw_line(screen, r,tmp,r,tmp+line_h, c);
-
-
-        // increment angle before another loop
-        ra += change;
-        if ra<0.0{ra+=2.0*PI};
-        if ra>2.0*PI{ra-=2.0*PI};
-
-    }
-
-}
 
 fn is_within_bounds(x: f32, y: f32) -> bool {
     x >= 0.0 && x < MAP_W as f32 && y >= 0.0 && y < MAP_H as f32
@@ -404,19 +233,198 @@ fn move_enemy_towards_player(
     (ex, ey)
 }
 
+fn draw_ray(pa: f32, px: f32, py: f32, map: &[[u8;MAP_W];MAP_H], screen: &mut [[char; SCREEN_W]; SCREEN_H]){
+    let(mut mx, mut my, mut dof) = (0usize, 0usize, 0usize);
+    let(mut rx, mut ry, mut ra, mut xo, mut yo) = (0f32, 0f32, 0f32, 0f32, 0f32);
+    let mut dis = f32::INFINITY;
+    let mut dis_h = f32::INFINITY;
+    let mut dis_v = f32::INFINITY;
+    let mut hx = f32::INFINITY;; let mut hy = f32::INFINITY;;
+    let mut vx = f32::INFINITY;; let mut vy = f32::INFINITY;;
+
+    let change: f32 = 60.0*DEG/SCREEN_W as f32;     //FOV HAPPENING HERE
+    ra = pa-30.0*DEG;
+    if ra<0.0{ra+=2.0*PI};
+    if ra>2.0*PI{ra-=2.0*PI};
+
+    for r in 0..SCREEN_W{
+        // HORIZONTAL LINES
+        dof = 0;
+        let tan: f32 = f32::tan(ra);
+        let ctg: f32 = 1.0 / tan;
+        if(ra>PI){
+            ry = (py as usize) as f32-0.0001;
+            rx = (ry-py) * ctg + px;
+            yo = -1.0;
+            xo = yo * ctg;
+        }
+        else if(ra > 0.0 && ra < PI){
+            ry = (py as usize+1) as f32;
+            rx = (ry-py) * ctg + px;
+            yo = 1.0;
+            xo = yo* ctg;
+        }
+        else{
+            rx = px; ry = py; dof = MAP_W; dis_h = f32::INFINITY;;
+        }
+
+        while dof < MAP_W {
+            mx = rx as usize; my = ry as usize;
+            // if rx < 0.0 || rx > MAP_W as f32 || ry < 0.0 || ry > MAP_H as f32{
+            //     rx = px + 100000.0*f32::cos(pa); ry = py + 100000.0*f32::sin(pa); dof = MAP_W;
+            // }
+            if mx < MAP_W && my < MAP_H && map[my][mx]>0u8{
+                hx = rx;
+                hy = ry;
+                dis_h = distance(px, py, rx, ry, ra);
+                dof = 8;
+            }
+            else{
+                rx += xo; ry += yo; dof +=1;
+            }
+        }
+        let scale_x = SCREEN_W as f32/ MAP_W as f32;
+        let scale_y = SCREEN_H as f32 / MAP_H as f32;
+
+        //horizontal rays on 2d map
+        // draw_line(screen, (px*scale_x) as usize, (py*scale_y) as usize, (rx*scale_x) as usize, (ry*scale_y) as usize, '*');
+
+        // VERTICAL LINES
+        dof = 0;
+        if(ra>PI_1_OVER_2 && ra<PI_3_OVER_2){
+            // if f32::cos(ra) < -0.001{
+            rx = (px as usize) as f32-0.001;
+            ry = (rx-px) * tan + py;
+            xo = -1.0;
+            yo = xo * tan;
+        }
+        else if(ra < PI_1_OVER_2 || ra  > PI_3_OVER_2){
+            // else if f32::cos(ra) > 0.001{
+            rx = (px as usize) as f32 + 1.0;
+            ry = (rx-px) * tan + py;
+            xo = 1.0;
+            yo = xo * tan;
+        }
+        else{
+            rx = px; ry = py; dof = MAP_W; dis_v = f32::INFINITY;
+        }
+        while dof < MAP_W {
+
+            mx = rx as usize; my = ry as usize;
+            // print!("\nrx {rx}, ry {ry}, xo{xo}, yo{yo}, mx{mx}, my{my}");
+            // if rx < 0.0 || rx > MAP_W as f32 || ry < 0.0 || ry > MAP_H as f32{
+            //     rx = px + 100000.0*f32::cos(pa); ry = py + 100000.0*f32::sin(pa); dof = MAP_W;
+            // }
+            if(mx < MAP_W && my < MAP_H && map[my][mx]>0u8){
+                vx = rx;
+                vy = ry;
+                dis_v = distance(px, py, rx, ry, ra);
+                dof = MAP_W;
+            }
+            else {
+                rx += xo;
+                ry += yo;
+                dof += 1;
+            }
+        }
+        let c:char;
+        if dis_v < dis_h {rx = vx; ry = vy; dis = dis_v; c='|'} else{rx = hx; ry = hy; dis = dis_h; c = '-'};
+
+
+
+
+        //any ray
+        // draw_line(screen, (px*scale_x) as usize, (py*scale_y) as usize, (rx*scale_x) as usize, (ry*scale_y) as usize, '*');
+
+
+        //3D SCREEN
+        let mut ca:f32 = pa-ra; if ca < 0.0 {ca += 2.0*PI} else if ca > 2.0*PI {ca -= 2.0*PI};
+        dis *= f32::cos(ca);
+        let mut line_h = (SCREEN_H as f32/ dis) as usize; if line_h > SCREEN_H {line_h = SCREEN_H};
+        let tmp = SCREEN_H/2 - (line_h/2);
+        draw_line(screen, r,tmp,r,tmp+line_h, c);
+
+
+        // increment angle before another loop
+        ra += change;
+        if ra<0.0{ra+=2.0*PI};
+        if ra>2.0*PI{ra-=2.0*PI};
+
+    }
+
+}
+
+
+fn render_enemy(px: f32, py: f32, pa: f32, ex: f32, ey: f32, screen: &mut [[char; SCREEN_W]; SCREEN_H]) {
+    let distance = distance(px, py, ex, ey, 0.0);
+    let angular_difference = angle(px, py, pa, ex, ey);
+
+    // Check if the enemy is within the 30-degree FOV to either side
+    if angular_difference.abs() <= std::f32::consts::PI / 6.0 {
+        let max_size = 120.0;
+        let size_factor = distance.powi(2) / 5.0 + 1.0;
+        let size = ((max_size / size_factor).max(1.0)).min(max_size) as usize;
+
+        // Calculate horizontal screen position based on the angle
+        let half_fov = std::f32::consts::PI / 6.0;
+        let fov_scale = SCREEN_W as f32 / (2.0 * half_fov);
+        let screen_position_x = ((angular_difference + half_fov) * fov_scale).round() as isize - size as isize / 2;
+
+        let screen_position_y = (SCREEN_H as isize / 2) - (size as isize / 2);
+
+        for i in 0..size {
+            for j in 0..size {
+                let draw_x = screen_position_x + j as isize;
+                let draw_y = screen_position_y + i as isize;
+                if draw_x >= 0 && draw_x < SCREEN_W as isize && draw_y >= 0 && draw_y < SCREEN_H as isize {
+                    screen[draw_y as usize][draw_x as usize] = 'E';
+                }
+            }
+        }
+    }
+}
+
+
+
+fn angle(px: f32, py: f32, pa: f32, ex: f32, ey: f32) -> f32 {
+    let enemy_angle = f32::atan2(ey - py, ex - px);
+    let pa_normalized = pa.rem_euclid(std::f32::consts::PI * 2.0);
+    let enemy_angle_normalized = enemy_angle.rem_euclid(std::f32::consts::PI * 2.0);
+
+    // Calculate the difference in a way that determines direction
+    let mut diff = enemy_angle_normalized - pa_normalized;
+
+    // Adjust the difference to be the minimal angle in the correct direction
+    if diff > std::f32::consts::PI {
+        diff -= 2.0 * std::f32::consts::PI;
+    } else if diff < -std::f32::consts::PI {
+        diff += 2.0 * std::f32::consts::PI;
+    }
+
+    diff
+}
+
+
+// Optional: Conversion function to degrees
+fn to_degrees(radians: f32) -> f32 {
+    radians * 180.0 / std::f32::consts::PI
+}
+
+
+
 fn main()-> Result<(), io::Error>{
 
-    let (mut px, mut py, mut pa, mut pdx, mut pdy) = (3.5f32, 5.299f32, 0f32, 0.1f32, 0.1f32);
+    let (mut px, mut py, mut pa, mut pdx, mut pdy) = (3f32, 3f32, 0f32, 0.1f32, 0.1f32);
     pdx = f32::cos(pa)*0.2;
     pdy = f32::sin(pa)*0.2;
     let mut screen = get_screen();
 
-    let (mut e_px, mut e_py) = (6f32, 5.5f32); // Start enemy at position (6, 5.5)
+    let (mut e_px, mut e_py) = (6f32, 6f32); // Start enemy at position (6, 5.5)
     let graph = create_graph(&MAP);
 
     // render2d_map(&MAP, &mut screen);
     // render_player(px, py, &mut screen);
-    render_fullscreen2d_map(&MAP, &mut screen);
+    //render_fullscreen2d_map(&MAP, &mut screen);
     // print_screen(&screen);
 
     //get input from now on
@@ -481,16 +489,15 @@ fn main()-> Result<(), io::Error>{
 
         // Your other loop logic here
         reset_screen(&mut screen);
-        // render2d_map(&MAP, &mut screen);
-        // render_player(px, py, &mut screen);
-        // render_fullscreen2d_map(&MAP, &mut screen);
-        // draw_fullscreen_player_ray(px, py, pdx, pdy, &mut screen);
+
+        //draw_enemy_ray(pa, px, py, &mut screen, e_px, e_py);
+        render_enemy(px, py, pa, e_px, e_py, &mut screen);
         draw_ray(pa, px, py, &MAP, &mut screen);
-        //render_fullscreen_enemy(e_px, e_py, &mut screen);
-        // render_fullscreen_player(px, py, &mut screen);
+        //draw_ray(pa, px, py, &MAP, &mut screen);
+
 
         print_screen(&screen);
-        //print!("\npx: {},py: {},pa: {}, pdx:{}, pdy:{}\n", px, py, pa*180.0/PI, pdx, pdy);
+        print!("\npx: {},py: {},pa: {}, pdx:{}, pdy:{}\n", px, py, pa*180.0/PI, pdx, pdy);
         // For demonstration purposes, we'll just sleep for a short duration
         std::thread::sleep(Duration::from_millis(100));
     }
