@@ -4,4 +4,4 @@
 It's a simple 2.5d game working in console, made as final project for Rust Course at University.
 
 # Presentation
-![acii_doom_presentation](https://github.com/user-attachments/assets/649bb44c-2387-41cc-b424-7a4b69d1b440)
+![ascii_doom_presentation](https://github.com/user-attachments/assets/c26adb27-dd61-450f-b466-eb8d0af6a6ea)
